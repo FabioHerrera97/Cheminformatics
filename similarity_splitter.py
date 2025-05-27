@@ -39,7 +39,7 @@ def main():
         dataset,
         frac_train=args.train_frac,
         frac_valid=args.valid_frac,
-        frac_test=args.test_frac,"
+        frac_test=args.test_frac,
         homogenous_threshold=args.similarity_threshold
     )
 
@@ -48,9 +48,9 @@ def main():
     print('Validation set size:', len(validation_dataset.smiles))
     print('Test set size:', len(test_dataset.smiles))
 
-    deepmol_to_csv(train_dataset, 'train_data')
-    deepmol_to_csv(validation_dataset, 'validation_data')
-    deepmol_to_csv(test_dataset, 'test_data')
+    deepmol_to_csv(train_dataset, 'data/train_data')
+    deepmol_to_csv(validation_dataset, 'data/validation_data')
+    deepmol_to_csv(test_dataset, '/data/test_data')
 
     print('Splitting completed successfully!')
 
