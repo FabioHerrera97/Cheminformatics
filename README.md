@@ -22,7 +22,7 @@ cd Cheminformatics
 The repository includes a YAML file (cheminformatics.yml) to recreate the required environment. Run:
 
 ```bash
-conda env create -f cheminformatics.yml
+conda env create -f cheminformatics.yml --force
 ```
 ### 3. Activate the Environment
 
@@ -37,7 +37,7 @@ Run the first part of the [Tutorial_predicting_toxicity_small_molecules](https:/
 The data needs to be splited into a train, validation and test dataset. The similarity splitter from deepmol was used. The data is split in a way that the similarity between the molecules in each set is below a certain threshold. This is useful when we want to make sure that the molecules in the validation and test sets are either not too similar or similar to the molecules in the training set. Due to imcompatibility with other cheminformatic labraries deepmol needs to be run in a different environment. 
 
 ```bash
-conda env create -f deeplmol.yml
+conda env create -f deeplmol.yml --force
 
 conda activate deeplmol
 ```
