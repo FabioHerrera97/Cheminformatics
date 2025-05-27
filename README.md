@@ -14,7 +14,7 @@ This repository contains a tutotrial on representation of small molecules repres
 ### 1. Clone the Repository (SSH)
 Open a terminal and run:
 ```bash
-git git@github.com:FabioHerrera97/Cheminformatics.git
+git clone git@github.com:FabioHerrera97/Cheminformatics.git
 cd Cheminformatics
 ```
 ### 2. Set Up the Conda Environment
