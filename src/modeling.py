@@ -1,11 +1,10 @@
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
-import deepchem as dc
-from deepchem.models import GCNModel
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, TensorDataset
 import numpy as np
+import joblib
 
 class DNN(nn.Module):
       
@@ -101,30 +100,134 @@ class TrainerConvModel:
             y_pred = (y_proba > 0.5).astype(int)
           return y_pred, y_proba
     
-class TrainerGCN:
-     
-     '''
-     Trainer for Graph Convolutional Network models on molecular graphs.
+    '''A class for training and evaluating machine learning models with combined training/validation data.
+    
+    This class combines training and validation datasets to maximize training data usage, then trains
+    both logistic regression and deep neural network (DNN) models using pre-optimized hyperparameters.
+    Finally, it evaluates performance on a held-out test set and saves the trained models.
 
     Args:
-        Graph_train: Training molecular graphs
-        Graph_val: Validation molecular graphs
+        X_train (array-like): Training feature matrix
+        y_train (array-like): Training target vector
+        X_val (array-like): Validation feature matrix
+        y_val (array-like): Validation target vector
+        X_test (array-like): Test feature matrix
+        y_test (array-like): Test target vector
 
-    method train_gcn Returns:
-            tuple: (y_pred_class, y_pred) where:
-                y_pred_class: Binary class predictions (0 or 1)
-                y_pred: Raw prediction scores before thresholding
-     '''
+    Attributes:
+        X_train (ndarray): Combined training+validation features
+        y_train (ndarray): Combined training+validation targets
+        X_test (ndarray): Test features
+        y_test (ndarray): Test targets
+        lr_params (dict): Optimal parameters for logistic regression:
+            - C (float): Inverse regularization strength (2.002)
+            - penalty (str): Regularization type ('l2')
+            - solver (str): Optimization algorithm ('liblinear')
+            - max_iter (int): Maximum iterations (1000)
+            - random_state (int): Random seed (42)
+        dnn_params (dict): Optimal parameters for DNN:
+            - n_layers (int): Number of hidden layers (2)
+            - n_units (list): Units per layer [112, 144]
+            - dropout (float): Dropout probability (0.351)
+            - lr (float): Learning rate (0.00133)
+            - batch_size (int): Training batch size (32)
 
-     def __init__(self, Graph_train, Graph_val):
-
-            self.Graph_train = Graph_train
-            self.Graph_val = Graph_val
-
-     def train_gcn(self):
-           model = GCNModel(n_task=1, mode='classification', batch_size=32, learning_rate=0.001)
-           model.fit(self.Graph_train, nb_epoch=50)
-           y_pred = model.predict(self.Graph_val).flatten()
-           y_pred_class = (y_pred > 0.5).astype(int)
-           return y_pred_class, y_pred
+    Methods:
+        train_logistic_regression():
+            Trains logistic regression model with optimal hyperparameters.
+            
+        train_dnn():
+            Trains deep neural network with optimal architecture and hyperparameters.
+    '''
      
+class TrainOptimalModels:
+    def __init__(self, X_train, y_train, X_val, y_val, X_test, y_test):
+        # Combine train and validation sets
+        self.X_train = np.concatenate([X_train, X_val])
+        self.y_train = np.concatenate([y_train, y_val])
+        self.X_test = X_test
+        self.y_test = y_test
+        
+        # Optimal hyperparameters
+        self.lr_params = {
+            'C': 2.0021859860317472,
+            'penalty': 'l2',
+            'solver': 'liblinear',
+            'max_iter': 1000,
+            'random_state': 42
+        }
+        
+        self.dnn_params = {
+            'n_layers': 2,
+            'n_units': [112, 144],  # units for layer 0 and 1
+            'dropout': 0.35104406840256835,
+            'lr': 0.0013305808434076489,
+            'batch_size': 32
+        }
+    
+    def train_logistic_regression(self):
+        """Trains logistic regression with optimal hyperparameters."""
+        model = LogisticRegression(**self.lr_params)
+        model.fit(self.X_train, self.y_train)
+        
+        y_test_pred = model.predict(self.X_test)
+        y_test_proba = model.predict_proba(self.X_test)[:,1]
+        
+        joblib.dump(model, 'logistic_regression_model.pkl')
+        return y_test_pred, y_test_proba
+    
+    def train_dnn(self):
+        """Trains DNN with optimal architecture and hyperparameters."""
+        class DNN(nn.Module):
+            def __init__(self, input_size, dnn_params):
+                super(DNN, self).__init__()
+                self.layers = nn.ModuleList()
+                
+                # Input layer
+                self.layers.append(nn.Linear(input_size, dnn_params['n_units'][0]))
+                self.layers.append(nn.ReLU())
+                self.layers.append(nn.Dropout(dnn_params['dropout']))
+                
+                # Hidden layers
+                for i in range(1, dnn_params['n_layers']):
+                    self.layers.append(nn.Linear(dnn_params['n_units'][i-1], dnn_params['n_units'][i]))
+                    self.layers.append(nn.ReLU())
+                    self.layers.append(nn.Dropout(dnn_params['dropout']))
+                
+                # Output layer
+                self.layers.append(nn.Linear(dnn_params['n_units'][-1], 1))
+                self.layers.append(nn.Sigmoid())
+            
+            def forward(self, x):
+                for layer in self.layers:
+                    x = layer(x)
+                return x
+        
+        # Prepare data
+        X_reshaped = np.array(self.X_train).reshape(len(self.y_train), -1)
+        test_reshaped = np.array(self.X_test).reshape(len(self.y_test), -1)
+        
+        train_data = TensorDataset(torch.FloatTensor(X_reshaped), torch.FloatTensor(self.y_train))
+        train_loader = DataLoader(train_data, batch_size=self.dnn_params['batch_size'], shuffle=True)
+        
+        # Initialize model with params passed to constructor
+        model = DNN(X_reshaped.shape[1], self.dnn_params)
+        optimizer = torch.optim.Adam(model.parameters(), lr=self.dnn_params['lr'])
+        criterion = nn.BCELoss()
+        
+        # Training loop
+        for epoch in range(100):
+            for x_batch, y_batch in train_loader:
+                optimizer.zero_grad()
+                outputs = model(x_batch).squeeze()
+                loss = criterion(outputs, y_batch)
+                loss.backward()
+                optimizer.step()
+        
+        # Test evaluation
+        with torch.no_grad():
+            y_test_proba = model(torch.FloatTensor(test_reshaped)).squeeze().numpy()
+            y_test_pred = (y_test_proba > 0.5).astype(int)
+        
+        torch.save(model.state_dict(), 'dnn_model.pth')
+        return y_test_pred, y_test_proba
