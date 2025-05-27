@@ -1,9 +1,7 @@
 import torch
 import pandas as pd
-import numpy as np
 from tqdm import tqdm
 from transformers import AutoModelForMaskedLM, AutoTokenizer
-from deepchem.feat import MolGraphConvFeaturizer
 
 class LLMsEncoding:
     
@@ -47,26 +45,6 @@ class LLMsEncoding:
                 embeddings_cls[i] = embedding
 
         return pd.DataFrame(embeddings_cls.numpy())
-    
-class GraphFeatirizer:
-
-
-    def featurize_graph(smiles):
-
-        featurizer = MolGraphConvFeaturizer()
-        features = []
-        valid_indices = []
-        for idx, smiles in enumerate(smiles):
-            try:
-                feature = featurizer.featurize(smiles)
-                features.append(feature)
-                valid_indices.append(idx)
-            except:
-                print(f'Failed to featurize SMILES: {smiles}')
-                continue
-
-        graph_features = np.squeeze(np.array(features))
-        return graph_features
 
 def main():
     
@@ -81,9 +59,6 @@ def main():
     print('Performing SELFormer \n')
     selformer_embeddings = LLMsEncoding.featurize(smiles_list, 'HUBioDataLab/SELFormer', 800)
     print(selformer_embeddings)
-    print('Performing GraphConvFeaturizer \n')
-    graph_embeddings = GraphFeatirizer.featurize_graph(smiles_list)
-    print(graph_embeddings)
 
 #main() # uncomment this line tu run the test
 
