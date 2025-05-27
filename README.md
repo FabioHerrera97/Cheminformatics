@@ -19,25 +19,23 @@ cd Cheminformatics
 ```
 ### 2. Set Up the Conda Environment
 
-The repository includes a YAML file (cheminformatics.yml) to recreate the required environment. Run:
-
 ```bash
-conda env create -f cheminformatics.yml --force
-```
-### 3. Activate the Environment
+conda create --name cheminformatics python=3.11
 
-```bash
 conda activate cheminformatics
+
+pip install -r requirements.txt
 ```
-### 4. Data cleaning and molecular standardization
+
+### 3. Data cleaning and molecular standardization
 
 Run the first part of the [Tutorial_predicting_toxicity_small_molecules](https://github.com/FabioHerrera97/Cheminformatics/blob/main/Tutorial_predicting_toxicity_small_molecules.ipynb). This notebook contains the code and detailed instructions to run the project.
 
-### 5. Data split
+### 4. Data split
 The data needs to be splited into a train, validation and test dataset. The similarity splitter from deepmol was used. The data is split in a way that the similarity between the molecules in each set is below a certain threshold. This is useful when we want to make sure that the molecules in the validation and test sets are either not too similar or similar to the molecules in the training set. Due to imcompatibility with other cheminformatic labraries deepmol needs to be run in a different environment. 
 
 ```bash
-conda create -name deepmol python=3.11
+conda create --name deepmol python=3.11
 
 conda activate deeplmol
 
@@ -88,7 +86,7 @@ Each output file will contain two columns:
 
 ```Toxicity:```	  The label value (column name will match your input label column)
 
-### 5. Complete the representation and modeling part
+### 6. Complete the representation and modeling part
 
 Go back to the [Tutorial_predicting_toxicity_small_molecules](https://github.com/FabioHerrera97/Cheminformatics/blob/main/Tutorial_predicting_toxicity_small_molecules.ipynb) and follow the instructions.
 
