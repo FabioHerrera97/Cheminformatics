@@ -142,13 +142,11 @@ class TrainerConvModel:
      
 class TrainOptimalModels:
     def __init__(self, X_train, y_train, X_val, y_val, X_test, y_test):
-        # Combine train and validation sets
         self.X_train = np.concatenate([X_train, X_val])
         self.y_train = np.concatenate([y_train, y_val])
         self.X_test = X_test
         self.y_test = y_test
         
-        # Optimal hyperparameters
         self.lr_params = {
             'C': 2.0021859860317472,
             'penalty': 'l2',
@@ -159,7 +157,7 @@ class TrainOptimalModels:
         
         self.dnn_params = {
             'n_layers': 2,
-            'n_units': [112, 144],  # units for layer 0 and 1
+            'n_units': [112, 144], 
             'dropout': 0.35104406840256835,
             'lr': 0.0013305808434076489,
             'batch_size': 32
@@ -183,18 +181,15 @@ class TrainOptimalModels:
                 super(DNN, self).__init__()
                 self.layers = nn.ModuleList()
                 
-                # Input layer
                 self.layers.append(nn.Linear(input_size, dnn_params['n_units'][0]))
                 self.layers.append(nn.ReLU())
                 self.layers.append(nn.Dropout(dnn_params['dropout']))
                 
-                # Hidden layers
                 for i in range(1, dnn_params['n_layers']):
                     self.layers.append(nn.Linear(dnn_params['n_units'][i-1], dnn_params['n_units'][i]))
                     self.layers.append(nn.ReLU())
                     self.layers.append(nn.Dropout(dnn_params['dropout']))
                 
-                # Output layer
                 self.layers.append(nn.Linear(dnn_params['n_units'][-1], 1))
                 self.layers.append(nn.Sigmoid())
             
@@ -203,19 +198,16 @@ class TrainOptimalModels:
                     x = layer(x)
                 return x
         
-        # Prepare data
         X_reshaped = np.array(self.X_train).reshape(len(self.y_train), -1)
         test_reshaped = np.array(self.X_test).reshape(len(self.y_test), -1)
         
         train_data = TensorDataset(torch.FloatTensor(X_reshaped), torch.FloatTensor(self.y_train))
         train_loader = DataLoader(train_data, batch_size=self.dnn_params['batch_size'], shuffle=True)
         
-        # Initialize model with params passed to constructor
         model = DNN(X_reshaped.shape[1], self.dnn_params)
         optimizer = torch.optim.Adam(model.parameters(), lr=self.dnn_params['lr'])
         criterion = nn.BCELoss()
         
-        # Training loop
         for epoch in range(100):
             for x_batch, y_batch in train_loader:
                 optimizer.zero_grad()
@@ -224,7 +216,6 @@ class TrainOptimalModels:
                 loss.backward()
                 optimizer.step()
         
-        # Test evaluation
         with torch.no_grad():
             y_test_proba = model(torch.FloatTensor(test_reshaped)).squeeze().numpy()
             y_test_pred = (y_test_proba > 0.5).astype(int)
