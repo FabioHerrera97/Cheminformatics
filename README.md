@@ -37,7 +37,7 @@ The data needs to be splited into a train, validation and test dataset. The simi
 ```bash
 conda create --name deepmol python=3.11
 
-conda activate deeplmol
+conda activate deepmol
 
 pip install deepmol[all]
 ```
